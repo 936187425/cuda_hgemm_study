@@ -78,9 +78,9 @@ __global__ void mmaPermutedKernel(const half *__restrict__ A, const half *__rest
 
     uint32_t RC[WARP_COL_TILES][WARP_ROW_TILES][2];
 
-#pragma unroll
+#pragma unroll //循环展开
     for (size_t i = 0; i < WARP_COL_TILES; ++i) {
-#pragma unroll
+#pragma unroll //循环展开
         for (size_t j = 0; j < WARP_ROW_TILES; ++j) {
             RC[i][j][0] = 0;
             RC[i][j][1] = 0;
