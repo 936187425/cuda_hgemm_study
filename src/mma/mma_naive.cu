@@ -67,8 +67,8 @@ __global__ void mmaNaiveKernel(const half *__restrict__ A, const half *__restric
 
     __syncthreads();
 
-    if (lane_id < MMA_M) { //MMA_M=16,为什么要lane_id<16的线程放入到
-        *((int4 *)(&C[(warp_row + lane_id) * N + warp_col])) = *((int4 *)(&C_smem[lane_id][0])); //C_
+    if (lane_id < MMA_M) { // 只要16个线程实现 C_smem的数据搬移，且每个threads搬运C_smem的每一行数据.
+        *((int4 *)(&C[(warp_row + lane_id) * N + warp_col])) = *((int4 *)(&C_smem[lane_id][0])); 
     }
 }
 
@@ -78,4 +78,11 @@ void mmaNaive(half *A, half *B, half *C, size_t M, size_t N, size_t K) {
     dim3 grid(div_ceil(N, MMA_N), div_ceil(M, MMA_M)); //[N,M]是D=AB+C的计算结果的维度
 
     mmaNaiveKernel<<<grid, block>>>(A, B, C, M, N, K);
+    /*
+    * 总结：利用TensorCore来实现矩阵乘，我们需要考虑
+    * 数据从global_memory搬运到shared_memory，
+    * 然后搬运到register(利用ldmatrix),然后利用mma的指令集，
+    * 然后把结果从register搬运到shared memory,然后再搬运到global memory.
+    * (但是考虑问题的时候从使用哪个mma指令集开始出发,然后找到相应的ldmatrix)
+    */
 }
