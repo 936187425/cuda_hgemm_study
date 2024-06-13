@@ -77,30 +77,30 @@ constexpr size_t div_up(size_t a, size_t b) { return (a + b - 1) / b; }
 
 // padding的方法,BLOCK_TILE_SKEW_SIZE_X是控制padding的size.
 template <typename T, size_t BLOCK_TILE_SIZE_X = 32,
-          size_t BLOCK_TILE_SIZE_Y = 32, size_t BLOCK_TILE_SKEW_SIZE_X = 0>
+          size_t BLOCK_TILE_SIZE_Y = 32, size_t BLOCK_TILE_SKEW_SIZE_X = 0> // padding mode: BLOCK_TILE_SKEW_SIZE_X=1,T=float
 __global__ void transpose(T* output_matrix, T const* input_matrix, size_t M,
                           size_t N)
-{
+{ 
     // Waste some shared memory to avoid bank conflicts if
     // BLOCK_TILE_SKEW_SIZE_X != 0. 
     __shared__ T
-        shm[BLOCK_TILE_SIZE_Y][BLOCK_TILE_SIZE_X + BLOCK_TILE_SKEW_SIZE_X];
+        shm[BLOCK_TILE_SIZE_Y][BLOCK_TILE_SIZE_X +BLOCK_TILE_SKEW_SIZE_X];
 
     // In some algorithms, such as matrix multiplication,
     // a warp of threads have to access a column of the 2D matrix in the shared
     // memory. Using the conventional index mapping, if the column size is not a
     // multiple of the warp size, there will be bank conflicts. 
-    size_t const input_matrix_from_idx_x{threadIdx.x + blockIdx.x * blockDim.x}; //把
+    size_t const input_matrix_from_idx_x{threadIdx.x + blockIdx.x * blockDim.x}; 
     size_t const input_matrix_from_idx_y{threadIdx.y + blockIdx.y * blockDim.y};
     size_t const input_matrix_from_idx{input_matrix_from_idx_x +
-                                       input_matrix_from_idx_y * N};
+                                       input_matrix_from_idx_y * N}; //input_matrix 是[N,M]的transpose
     size_t const shm_to_idx_x{threadIdx.x};
     size_t const shm_to_idx_y{threadIdx.y};
 
     if ((input_matrix_from_idx_y < M) && (input_matrix_from_idx_x < N))
     {
         // Coalesced global memory access.
-        // No shared memory bank conflict.
+        // No shared memory bank conflict. 
         shm[shm_to_idx_y][shm_to_idx_x] = input_matrix[input_matrix_from_idx];
     }
 
@@ -122,7 +122,7 @@ __global__ void transpose(T* output_matrix, T const* input_matrix, size_t M,
         // Coalesced global memory access.
         // No shared memory bank conflict if BLOCK_TILE_SKEW_SIZE_X = 1.
         output_matrix[output_matrix_to_idx] =
-            shm[shm_from_idx_y][shm_from_idx_x];
+            shm[shm_from_idx_y][shm_from_idx_x]; //warp以列优先的顺序读取shm，此时当BLOCK_TILE_SKEW_SIZE_X=1时没有bank conflict,因为第i行的元素属于的bank会是(pre_banks_id+ i/2)%32.
     }
 }
 
