@@ -203,6 +203,7 @@ __global__ void mmaPermutedKernel(const half *__restrict__ A, const half *__rest
     }
 }
 
+// 设置MMA_Permulated
 size_t initMmaPermuted() {
     int dev_id = 0;
     HGEMM_CHECK_CUDART_ERROR(cudaGetDevice(&dev_id));
@@ -222,7 +223,7 @@ size_t initMmaPermuted() {
 }
 
 void mmaPermuted(half *A, half *B, half *C, size_t M, size_t N, size_t K) {
-    static size_t smem_max_size = initMmaPermuted();
+    static size_t smem_max_size = initMmaPermuted(); // shared memory max size
 
     dim3 block(THREADS_PER_BLOCK);
     dim3 grid(BLOCK_STRIDE, div_ceil(M, BLOCK_ROWS), div_ceil(N, BLOCK_COLS * BLOCK_STRIDE));
