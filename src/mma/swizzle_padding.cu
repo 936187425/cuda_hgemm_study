@@ -122,7 +122,10 @@ __global__ void transpose(T* output_matrix, T const* input_matrix, size_t M,
         // Coalesced global memory access.
         // No shared memory bank conflict if BLOCK_TILE_SKEW_SIZE_X = 1.
         output_matrix[output_matrix_to_idx] =
-            shm[shm_from_idx_y][shm_from_idx_x]; //warp以列优先的顺序读取shm，此时当BLOCK_TILE_SKEW_SIZE_X=1时没有bank conflict,因为第i行的元素属于的bank会是(pre_banks_id+ i/2)%32.
+            shm[shm_from_idx_y][shm_from_idx_x]; //warp以列优先的顺序读取shm，
+        //此时当BLOCK_TILE_SKEW_SIZE_X=1时没有bank conflict,因为第i行第0列元素bank id会是(pre_banks_id+ i/2)%32.
+        // (pre_banks_id 为BLOCK_TILE_SKEW_SIZE_X=0时bank id即第i行第j列的bank id为: 16*(i/2)+j/2)
+
     }
 }
 
