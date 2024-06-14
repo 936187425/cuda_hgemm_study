@@ -93,7 +93,7 @@ __global__ void transpose(T* output_matrix, T const* input_matrix, size_t M,
     size_t const input_matrix_from_idx_x{threadIdx.x + blockIdx.x * blockDim.x}; 
     size_t const input_matrix_from_idx_y{threadIdx.y + blockIdx.y * blockDim.y};
     size_t const input_matrix_from_idx{input_matrix_from_idx_x +
-                                       input_matrix_from_idx_y * N}; //input_matrix 是[N,M]的transpose
+                                       input_matrix_from_idx_y * N}; //input_matrix,output_matrix 是[N,M]的transpose
     size_t const shm_to_idx_x{threadIdx.x};
     size_t const shm_to_idx_y{threadIdx.y};
 
@@ -129,6 +129,8 @@ __global__ void transpose(T* output_matrix, T const* input_matrix, size_t M,
     }
 }
 
+
+// 我用python代码解读了transpose_swizzling的代码,链接:https://colab.research.google.com/drive/18cE6r3hdByY24S07SVrjOqGjxq3teNeS
 template <typename T, size_t BLOCK_TILE_SIZE_X = 32,
           size_t BLOCK_TILE_SIZE_Y = 32>
 __global__ void transpose_swizzling(T* output_matrix, T const* input_matrix,
