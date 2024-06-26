@@ -16,6 +16,7 @@
 *
 */
 
+/*最早的做法就是gloa*/
 __global__ void mmaNaiveKernel(const half *__restrict__ A, const half *__restrict__ B, half *__restrict__ C, size_t M,
                                size_t N, size_t K) {
     const size_t K_tiles = div_ceil(K, MMA_K); //除法，向上取整,计算出在K维度上的tiles数

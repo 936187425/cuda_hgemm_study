@@ -51,12 +51,12 @@
 
 __global__ void mmaAsyncKernel(const half *__restrict__ A, const half *__restrict__ B, half *__restrict__ C, size_t M,
                                size_t N, size_t K) {
-    const size_t M_tiles = div_ceil(M, MMA_M);
+    const size_t M_tiles = div_ceil(M, MMA_M); //因为本kernel使用的是warp-level的PTX指令,因此每个thread的分块应该是根据mma指令的size
     const size_t N_tiles = div_ceil(N, MMA_N);
-    const size_t K_tiles = div_ceil(K, MMA_K);
+    const size_t K_tiles = div_ceil(K, MMA_K); 
 
     const size_t block_tile_i =
-        (blockIdx.z % 2) ? ((gridDim.y - blockIdx.y - 1) * BLOCK_COL_TILES) : (blockIdx.y * BLOCK_COL_TILES);
+        (blockIdx.z % 2) ? ((gridDim.y - blockIdx.y - 1) * BLOCK_COL_TILES) : (blockIdx.y * BLOCK_COL_TILES); //TODO:？ 
     const size_t block_tile_j = (blockIdx.z * gridDim.x + blockIdx.x) * BLOCK_ROW_TILES;
 
     if (block_tile_i >= M_tiles || block_tile_j >= N_tiles) {
@@ -220,21 +220,21 @@ size_t initMmaAsync() {
     HGEMM_CHECK_CUDART_ERROR(cudaGetDeviceProperties(&dev_prop, dev_id));
 
     size_t smem_max_size =
-        std::max((BLOCK_ROWS + BLOCK_COLS) * AB_SMEM_STRIDE * sizeof(half), BLOCK_ROWS * C_SMEM_STRIDE * sizeof(half));
+        std::max((BLOCK_ROWS + BLOCK_COLS) * AB_SMEM_STRIDE * sizeof(half), BLOCK_ROWS * C_SMEM_STRIDE * sizeof(half)); //
     HLOG("smem_max_size: %.0f KBytes (%zu Bytes)", static_cast<double>(smem_max_size) / 1024, smem_max_size);
 
     HGEMM_CHECK_GT(dev_prop.sharedMemPerMultiprocessor, smem_max_size);
     HGEMM_CHECK_CUDART_ERROR(
         cudaFuncSetAttribute(mmaAsyncKernel, cudaFuncAttributeMaxDynamicSharedMemorySize, smem_max_size));
 
-    return smem_max_size;
+    return smem_max_size; //计算每个block的最大shared memory.
 }
 
 void mmaAsync(half *A, half *B, half *C, size_t M, size_t N, size_t K) {
     static size_t smem_max_size = initMmaAsync();
-
-    dim3 block(THREADS_PER_BLOCK);
-    dim3 grid(BLOCK_STRIDE, div_ceil(M, BLOCK_ROWS), div_ceil(N, BLOCK_COLS * BLOCK_STRIDE));
-
+    // HGEMM的grid和block的shape设置从最终的D的size开始. 考虑D的M被划分为多少行,N被划分为多少列.
+    dim3 block(THREADS_PER_BLOCK);//THREADS_PER_BLOCK的计算公式为: WARP_SIZE*WARP_PER_BLOCK【一般来说，对于每个block最多1024个threads且分配4个physical warps其余等warps等候被调度】
+    dim3 grid(BLOCK_STRIDE, div_ceil(M, BLOCK_ROWS), div_ceil(N, BLOCK_COLS * BLOCK_STRIDE)); //正常来说:BLOCK_ROWS:代表是一个BLOCK计算出D的多少行,BLOCK_COLS代表的是一个BLOCK计算出D的多少列.
+    //上述的含义就是一个block有THREADS_PER_BLOCK个线程，最终会计算出D的BLOCK_ROWS*BLOCK_COLS的分块.
     mmaAsyncKernel<<<grid, block, smem_max_size>>>(A, B, C, M, N, K);
 }

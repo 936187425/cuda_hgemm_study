@@ -4,6 +4,10 @@
 //
 // Description: mma base hgemm
 
+
+
+// this is pipeline optimization base code, please read the mma_async.cu,mma_async.stage3.cu in order 
+// the pipeline optimization descrided in  https://zhuanlan.zhihu.com/p/665082713 in detail 
 #include "common.h"
 
 #define MMA_M 16
@@ -154,6 +158,7 @@ __global__ void mmaBaseKernel(const half *__restrict__ A, const half *__restrict
         __syncthreads();
     }
 
+// Register to Global Memory
 #pragma unroll
     for (size_t i = 0; i < WARP_COL_TILES; ++i) {
 #pragma unroll
