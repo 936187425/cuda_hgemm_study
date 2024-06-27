@@ -78,6 +78,37 @@ void mmaNaive(half *A, half *B, half *C, size_t M, size_t N, size_t K) {
     dim3 block(WARP_SIZE); //每个block的设置为一维threads，长度为32，相当于一个warp计算出D矩阵的[MMA_N,MMA_H]矩阵的结果.
     dim3 grid(div_ceil(N, MMA_N), div_ceil(M, MMA_M)); //[N,M]是D=AB+C的计算结果的维度
 
+    // 总结：
+   /* #define MMA_M 16
+    * #define MMA_N 8
+    * #define MMA_K 16
+    * 
+    * 如果从mma_base.cu这个文件的角度来看, 这份代码的WARP TILE,BLOCK TILE分别是
+    * #define WARP_ROWS MMA_M
+    * #define WARP_COLS MMA_N
+    * 
+    * #define BLOCK_ROWS MMA_M
+    * #define BLOCK_ROWS MMA_N
+    * 
+    * 根据上述信息可以计算出BLOCK DIM
+    * #define BLOCK_ROW_WARP BLOCK_ROWS/WARP_ROWS
+    * #define BLOCK_COL_WARP BLOCK_COLS/WARP_COLS
+    * #define WARP_SIZE 32
+    * #define WARPS_PER_BLOCK  BLOCK_ROW_WARP*BLOCK_COL_WARP
+    * #define THREADS_PER_BLOCK WARPS_PER_BLOCK*WARP_SIZE
+    *
+    * 因为使用Tensor Core所以还需要对WARP TILE,BLOCK TILE进行再分块.
+    * #define BLOCK_ROW_TILES BLOCK_ROWS/MMA_M
+    * #define BLOCK_COL_TILES BLOCK_COLS/MMA_N
+    * 
+    * #define WARP_ROW_TILES WARP_ROWS/MMA_M
+    * #define WARP_COL_TILES WARP_COLS/MMA_N
+    * 
+    * 
+    */
+
+
+
     mmaNaiveKernel<<<grid, block>>>(A, B, C, M, N, K);
     /*
     * 总结：利用TensorCore来实现矩阵乘，我们需要考虑
